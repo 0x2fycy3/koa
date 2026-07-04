@@ -18,12 +18,15 @@ def _check_allowed(source) -> bool:
 
 
 def _build_embed(phrase: str, cards: list[BreakdownCard]) -> discord.Embed:
+    title = phrase[:253] + "..." if len(phrase) > 256 else phrase
     embed = discord.Embed(
-        title=phrase,
+        title=title,
         color=0xE67E22,
     )
     for card in cards:
-        value = f"**Pinyin:** {card.pinyin}\n**English:** {card.english}"
+        pinyin = card.pinyin[:1000] + "..." if len(card.pinyin) > 1024 else card.pinyin
+        english = card.english[:1000] + "..." if len(card.english) > 1024 else card.english
+        value = f"**Pinyin:** {pinyin}\n**English:** {english}"
         embed.add_field(name=card.original, value=value, inline=False)
     embed.set_footer(text=f"Model: {config.DEEPSEEK_MODEL}")
     return embed
@@ -40,6 +43,9 @@ class BreakdownBot(commands.Bot):
 
     async def setup_hook(self) -> None:
         await self.tree.sync()
+
+    async def on_ready(self) -> None:
+        logger.info("Bot logged in as %s (ID: %s)", self.user, self.user.id)
 
 
 bot = BreakdownBot()
@@ -59,11 +65,13 @@ bot = BreakdownBot()
 )
 async def slash_breakdown(interaction: discord.Interaction, phrase: str) -> None:
     if not _check_allowed(interaction):
+        logger.warning("Auth denied for user %s", interaction.user.id)
         await interaction.response.send_message(
             "You are not authorized to use this bot.", ephemeral=True
         )
         return
 
+    logger.info("Slash command from %s: %r", interaction.user.id, phrase)
     phrase = phrase.strip()
     if not phrase:
         await interaction.response.send_message(
@@ -80,6 +88,7 @@ async def slash_breakdown(interaction: discord.Interaction, phrase: str) -> None
     try:
         cards = await breakdown_phrase(phrase)
     except BreakdownError:
+        logger.exception("Breakdown failed for phrase %r", phrase)
         await interaction.followup.send(
             "Sorry, the breakdown service is temporarily unavailable. Please try again."
         )
@@ -110,9 +119,11 @@ async def on_slash_breakdown_error(
 )
 async def prefix_breakdown(ctx: commands.Context, *, phrase: str) -> None:
     if not _check_allowed(ctx):
+        logger.warning("Auth denied for user %s", ctx.author.id)
         await ctx.send("You are not authorized to use this bot.", delete_after=5)
         return
 
+    logger.info("Prefix command from %s: %r", ctx.author.id, phrase)
     phrase = phrase.strip()
     if not phrase:
         await ctx.send("Please provide a Chinese phrase.", delete_after=5)
@@ -127,6 +138,7 @@ async def prefix_breakdown(ctx: commands.Context, *, phrase: str) -> None:
         try:
             cards = await breakdown_phrase(phrase)
         except BreakdownError:
+            logger.exception("Breakdown failed for phrase %r", phrase)
             await ctx.send(
                 "Sorry, the breakdown service is temporarily unavailable. Please try again."
             )

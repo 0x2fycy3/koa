@@ -118,3 +118,8 @@ async def breakdown_phrase(phrase: str) -> list[BreakdownCard]:
     except json.JSONDecodeError as e:
         logger.error("JSON parse failed: %s, content: %s", e, content)
         raise BreakdownError("The model returned an unexpected response. Please try again.") from e
+    except Exception as e:
+        logger.error("API call failed: %s", e)
+        raise BreakdownError(
+            "Sorry, the breakdown service is temporarily unavailable. Please try again."
+        ) from e
