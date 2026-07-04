@@ -42,6 +42,11 @@ class BreakdownBot(commands.Bot):
         )
 
     async def setup_hook(self) -> None:
+        if config.GUILD_ID:
+            guild = discord.Object(id=config.GUILD_ID)
+            self.tree.copy_global_to(guild=guild)
+            await self.tree.sync(guild=guild)
+            logger.info("Slash commands synced to guild %s", config.GUILD_ID)
         await self.tree.sync()
 
     async def on_ready(self) -> None:
