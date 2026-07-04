@@ -4,7 +4,7 @@ from discord import app_commands
 
 from . import config
 from .logger import setup_logging, get_logger
-from .breakdown import breakdown_phrase, BreakdownError, BreakdownCard
+from .breakdown import breakdown_phrase, transcribe_image, BreakdownError, TranscriptionError, BreakdownCard
 
 setup_logging()
 logger = get_logger(__name__)
@@ -17,13 +17,24 @@ def _check_allowed(source) -> bool:
     return user.id in config.ALLOWED_USER_IDS
 
 
-def _build_embeds(cards: list[BreakdownCard]) -> list[discord.Embed]:
+def _build_embeds(cards: list[BreakdownCard], level: str = "noob") -> list[discord.Embed]:
     embeds = []
     for i, card in enumerate(cards):
         embed = discord.Embed(color=0xFA8072)
-        pinyin = card.pinyin[:1000] + "..." if len(card.pinyin) > 1024 else card.pinyin
-        english = card.english[:1000] + "..." if len(card.english) > 1024 else card.english
-        value = f"**Pinyin:** {pinyin}\n\n**English:** {english}"
+        if level == "noob" and card.words:
+            lines = ["\u200b", "**Word‑by‑word:**"]
+            for j, w in enumerate(card.words, 1):
+                lines.append(f"{j}. {w['chinese']} → *{w['pinyin']}* → ||{w['english']}||")
+            lines.append("")
+            lines.append(f"**Translation:** {card.english}")
+            value = "\n".join(lines)
+        else:
+            pinyin = card.pinyin[:1000] + "..." if len(card.pinyin) > 1024 else card.pinyin
+            english = card.english[:1000] + "..." if len(card.english) > 1024 else card.english
+            pinyin = pinyin.replace("||", "")
+            value = f"**Pinyin:** {pinyin}\n\n**English:** {english}"
+        if len(value) > 1024:
+            value = value[:1000] + "..."
         embed.add_field(name=card.original, value=value, inline=False)
         embed.set_footer(text=f"Model: {config.DEEPSEEK_MODEL}")
         embed.set_image(url="https://i.pinimg.com/736x/f1/b8/a0/f1b8a068155fd8593c1834d64cf7945e.jpg")
@@ -54,15 +65,28 @@ bot = BreakdownBot()
 
 @bot.tree.command(
     name="breakdown",
-    description="Break down a Chinese phrase with pinyin and English translation",
+    description="Break down a Chinese phrase (text or image) with pinyin and English translation",
 )
-@app_commands.describe(phrase="The Chinese phrase to break down")
+@app_commands.describe(
+    phrase="The Chinese phrase to break down",
+    image="Or upload an image containing Chinese text",
+    level="Breakdown style",
+)
+@app_commands.choices(level=[
+    app_commands.Choice(name="Beginner (word‑by‑word)", value="noob"),
+    app_commands.Choice(name="Advanced (chunked spoilers)", value="advanced"),
+])
 @app_commands.checks.cooldown(
     rate=1,
     per=config.COOLDOWN_SECONDS,
     key=lambda i: i.user.id,
 )
-async def slash_breakdown(interaction: discord.Interaction, phrase: str) -> None:
+async def slash_breakdown(
+    interaction: discord.Interaction,
+    phrase: str | None = None,
+    image: discord.Attachment | None = None,
+    level: str = "noob",
+) -> None:
     if not _check_allowed(interaction):
         logger.warning("Auth denied for user %s", interaction.user.id)
         await interaction.response.send_message(
@@ -70,22 +94,54 @@ async def slash_breakdown(interaction: discord.Interaction, phrase: str) -> None
         )
         return
 
-    logger.info("Slash command from %s: %r", interaction.user.id, phrase)
-    phrase = phrase.strip()
-    if not phrase:
+    if not phrase and not image:
         await interaction.response.send_message(
-            "Please provide a Chinese phrase.", ephemeral=True
-        )
-        return
-    if len(phrase) > 500:
-        await interaction.response.send_message(
-            "Phrase is too long (max 500 characters).", ephemeral=True
+            "Please provide a phrase or upload an image.", ephemeral=True
         )
         return
 
+    from_image = False
+    if image and not phrase:
+        if not image.content_type or not image.content_type.startswith("image/"):
+            await interaction.response.send_message(
+                "Please upload an image file (PNG, JPEG, etc.).", ephemeral=True
+            )
+            return
+        from_image = True
+    else:
+        phrase = phrase.strip()
+        if not phrase:
+            await interaction.response.send_message(
+                "Please provide a Chinese phrase.", ephemeral=True
+            )
+            return
+        if len(phrase) > 500:
+            await interaction.response.send_message(
+                "Phrase is too long (max 500 characters).", ephemeral=True
+            )
+            return
+
+    logger.info("Slash breakdown from %s: phrase=%r image=%s level=%s",
+                interaction.user.id, phrase, from_image, level)
+
     await interaction.response.defer()
+
+    if from_image:
+        try:
+            image_data = await image.read()
+            phrase = await transcribe_image(image_data, image.content_type)
+        except TranscriptionError:
+            logger.exception("Transcription failed")
+            await interaction.followup.send(
+                "Sorry, transcription failed. Please try again."
+            )
+            return
+        if not phrase.strip():
+            await interaction.followup.send("No text found in the image.")
+            return
+
     try:
-        cards = await breakdown_phrase(phrase)
+        cards = await breakdown_phrase(phrase, level=level)
     except BreakdownError:
         logger.exception("Breakdown failed for phrase %r", phrase)
         await interaction.followup.send(
@@ -93,8 +149,9 @@ async def slash_breakdown(interaction: discord.Interaction, phrase: str) -> None
         )
         return
 
-    embeds = _build_embeds(cards)
+    embeds = _build_embeds(cards, level=level)
     logger.info("Sending %d embeds for %d cards", len(embeds), len(cards))
+
     msg = await interaction.followup.send(embed=embeds[0])
     if len(embeds) > 1:
         real_msg = await interaction.channel.fetch_message(msg.id)
@@ -141,7 +198,7 @@ async def prefix_breakdown(ctx: commands.Context, *, phrase: str) -> None:
 
     async with ctx.typing():
         try:
-            cards = await breakdown_phrase(phrase)
+            cards = await breakdown_phrase(phrase, level="noob")
         except BreakdownError:
             logger.exception("Breakdown failed for phrase %r", phrase)
             await ctx.send(
@@ -149,7 +206,7 @@ async def prefix_breakdown(ctx: commands.Context, *, phrase: str) -> None:
             )
             return
 
-    embeds = _build_embeds(cards)
+    embeds = _build_embeds(cards, level="noob")
     logger.info("Sending %d embeds for %d cards", len(embeds), len(cards))
     if len(embeds) == 1:
         await ctx.send(embed=embeds[0])

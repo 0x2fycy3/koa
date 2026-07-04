@@ -1,3 +1,4 @@
+import base64
 import json
 from dataclasses import dataclass
 
@@ -8,7 +9,7 @@ from .logger import get_logger
 
 logger = get_logger(__name__)
 
-SYSTEM_PROMPT = """You are a Chinese language teaching assistant.
+ADVANCED_SYSTEM_PROMPT = """You are a Chinese language teaching assistant.
 Your ENTIRE response must be a valid JSON array. No text before or after the JSON.
 
 Each element of the array is one card (one grammatical clause), with exactly three keys:
@@ -67,28 +68,52 @@ Input: 只需大约20小时专注且刻意的练习，就能从对某个领域�
 
 Return ONLY the JSON array. No explanation, no markdown fences, no commentary."""
 
+NOOB_SYSTEM_PROMPT = """You are a Chinese teacher for complete beginners.
+Return ONLY a JSON array, no other text.
+
+Each card (one clause) has:
+- "original": Chinese clause
+- "pinyin": full pinyin (one line)
+- "english": full English translation (one line)
+- "words": array of {chinese, pinyin, english} — EVERY word broken down
+
+Split by Chinese WORDS (not characters). 学生 stays "学生", not "学"+"生".
+Particles (的/了/着/地/得) get "(particle)" as meaning.
+Punctuation (。，：) gets its own entry.
+
+Split long sentences into multiple cards (one per clause).
+
+EXAMPLE:
+Input: 只需大约20小时专注且刻意的练习
+[{"original":"只需大约20小时专注且刻意的练习","pinyin":"zhǐ xū dàyuē 20 xiǎoshí zhuānzhù qiě kèyì de liànxí","english":"You only need about 20 hours of focused, deliberate practice","words":[{"chinese":"只需","pinyin":"zhǐ xū","english":"only need"},{"chinese":"大约","pinyin":"dàyuē","english":"about"},{"chinese":"20","pinyin":"20","english":"20"},{"chinese":"小时","pinyin":"xiǎoshí","english":"hours"},{"chinese":"专注","pinyin":"zhuānzhù","english":"focused"},{"chinese":"且","pinyin":"qiě","english":"and"},{"chinese":"刻意","pinyin":"kèyì","english":"deliberate"},{"chinese":"的","pinyin":"de","english":"(particle)"},{"chinese":"练习","pinyin":"liànxí","english":"practice"}]}]
+
+Return ONLY JSON."""
+
 
 @dataclass
 class BreakdownCard:
     original: str
     pinyin: str
     english: str
+    words: list[dict[str, str]] | None = None
 
 
 class BreakdownError(Exception):
     """Raised when the breakdown API call or parsing fails."""
 
 
-async def breakdown_phrase(phrase: str) -> list[BreakdownCard]:
+async def breakdown_phrase(phrase: str, level: str = "noob") -> list[BreakdownCard]:
     client = AsyncOpenAI(
         api_key=config.DEEPSEEK_API_KEY,
         base_url=config.DEEPSEEK_BASE_URL,
     )
+    system_prompt = NOOB_SYSTEM_PROMPT if level == "noob" else ADVANCED_SYSTEM_PROMPT
+    logger.info("Using level=%s prompt", level)
     try:
         response = await client.chat.completions.create(
             model=config.DEEPSEEK_MODEL,
             messages=[
-                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "system", "content": system_prompt},
                 {"role": "user", "content": phrase},
             ],
             temperature=0.3,
@@ -112,10 +137,14 @@ async def breakdown_phrase(phrase: str) -> list[BreakdownCard]:
         for item in cards_data:
             if not all(k in item for k in ("original", "pinyin", "english")):
                 raise BreakdownError(f"Card missing required keys: {item}")
+            words = item.get("words")
+            if not isinstance(words, list):
+                words = None
             cards.append(BreakdownCard(
                 original=item["original"],
                 pinyin=item["pinyin"],
                 english=item["english"],
+                words=words,
             ))
         return cards
 
@@ -126,4 +155,42 @@ async def breakdown_phrase(phrase: str) -> list[BreakdownCard]:
         logger.error("API call failed: %s", e)
         raise BreakdownError(
             "Sorry, the breakdown service is temporarily unavailable. Please try again."
+        ) from e
+
+
+class TranscriptionError(Exception):
+    """Raised when the image transcription fails."""
+
+
+async def transcribe_image(image_data: bytes, content_type: str) -> str:
+    """Transcribe Chinese text from an image using OpenAI vision model."""
+    client = AsyncOpenAI(api_key=config.OPENAI_API_KEY)
+    b64 = base64.b64encode(image_data).decode()
+    data_url = f"data:{content_type};base64,{b64}"
+
+    try:
+        response = await client.chat.completions.create(
+            model=config.TRANSCRIPTION_MODEL,
+            messages=[{
+                "role": "user",
+                "content": [
+                    {
+                        "type": "image_url",
+                        "image_url": {"url": data_url},
+                    },
+                    {
+                        "type": "text",
+                        "text": "Please transcribe all Chinese text visible in this image. Return only the transcribed text, nothing else.",
+                    },
+                ],
+            }],
+            temperature=0,
+        )
+        text = response.choices[0].message.content or ""
+        logger.info("Transcription result: %s", text)
+        return text.strip()
+    except Exception as e:
+        logger.error("Transcription failed: %s", e)
+        raise TranscriptionError(
+            "Sorry, the transcription service is temporarily unavailable. Please try again."
         ) from e
