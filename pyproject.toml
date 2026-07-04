@@ -1,0 +1,15 @@
+[project]
+name = "koa"
+version = "0.1.0"
+description = "Chinese language breakdown Discord bot"
+requires-python = ">=3.11"
+dependencies = [
+    "discord.py>=2.3",
+    "openai>=1.0",
+    "python-dotenv>=1.0",
+]
+
+[dependency-groups]
+dev = [
+    "ruff>=0.11",
+]
