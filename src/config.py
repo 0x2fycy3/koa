@@ -12,6 +12,3 @@ COOLDOWN_SECONDS = float(os.environ.get("COOLDOWN_SECONDS", "3.0"))
 
 _raw_ids = os.environ.get("ALLOWED_USER_IDS", "")
 ALLOWED_USER_IDS: set[int] = {int(uid.strip()) for uid in _raw_ids.split(",") if uid.strip()}
-
-_raw_guild_id = os.environ.get("GUILD_ID", "")
-GUILD_ID: int | None = int(_raw_guild_id) if _raw_guild_id.strip() else None
