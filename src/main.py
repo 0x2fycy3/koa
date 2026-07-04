@@ -24,7 +24,7 @@ def _build_embed(phrase: str, cards: list[BreakdownCard]) -> discord.Embed:
     for card in cards:
         pinyin = card.pinyin[:1000] + "..." if len(card.pinyin) > 1024 else card.pinyin
         english = card.english[:1000] + "..." if len(card.english) > 1024 else card.english
-        value = f"**Pinyin:** {pinyin}\n**English:** {english}"
+        value = f"**Pinyin:** {pinyin}\n\n**English:** {english}"
         embed.add_field(name=card.original, value=value, inline=False)
     embed.set_footer(text=f"Model: {config.DEEPSEEK_MODEL}")
     return embed
