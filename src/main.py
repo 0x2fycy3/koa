@@ -18,10 +18,8 @@ def _check_allowed(source) -> bool:
 
 
 def _build_embed(phrase: str, cards: list[BreakdownCard]) -> discord.Embed:
-    title = phrase[:253] + "..." if len(phrase) > 256 else phrase
     embed = discord.Embed(
-        title=title,
-        color=0xE67E22,
+        color=0xFA8072,
     )
     for card in cards:
         pinyin = card.pinyin[:1000] + "..." if len(card.pinyin) > 1024 else card.pinyin
