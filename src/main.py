@@ -98,10 +98,12 @@ async def slash_breakdown(interaction: discord.Interaction, phrase: str) -> None
     if len(embeds) == 1:
         await interaction.followup.send(embed=embeds[0])
         return
-    msg = await interaction.followup.send(embed=embeds[0])
+    channel = interaction.channel
+    msg = await channel.send(embed=embeds[0])
     thread = await msg.create_thread(name=cards[0].original[:100])
     for embed in embeds[1:]:
         await thread.send(embed=embed)
+    await interaction.followup.send(content="\u200b", ephemeral=True)
 
 
 @slash_breakdown.error
