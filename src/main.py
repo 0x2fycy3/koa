@@ -17,18 +17,20 @@ def _check_allowed(source) -> bool:
     return user.id in config.ALLOWED_USER_IDS
 
 
-def _build_embed(phrase: str, cards: list[BreakdownCard]) -> discord.Embed:
-    embed = discord.Embed(
-        color=0xFA8072,
-    )
-    for card in cards:
-        pinyin = card.pinyin[:1000] + "..." if len(card.pinyin) > 1024 else card.pinyin
-        english = card.english[:1000] + "..." if len(card.english) > 1024 else card.english
-        value = f"**Pinyin:** {pinyin}\n\n**English:** {english}"
-        embed.add_field(name=card.original, value=value, inline=False)
-    embed.set_footer(text=f"Model: {config.DEEPSEEK_MODEL}")
-    embed.set_image(url="https://i.pinimg.com/736x/f1/b8/a0/f1b8a068155fd8593c1834d64cf7945e.jpg")
-    return embed
+def _build_embeds(cards: list[BreakdownCard]) -> list[discord.Embed]:
+    embeds = []
+    for chunk_start in range(0, len(cards), 25):
+        embed = discord.Embed(color=0xFA8072)
+        for card in cards[chunk_start : chunk_start + 25]:
+            pinyin = card.pinyin[:1000] + "..." if len(card.pinyin) > 1024 else card.pinyin
+            english = card.english[:1000] + "..." if len(card.english) > 1024 else card.english
+            value = f"**Pinyin:** {pinyin}\n\n**English:** {english}"
+            embed.add_field(name=card.original, value=value, inline=False)
+        embed.set_footer(text=f"Model: {config.DEEPSEEK_MODEL}")
+        if len(embeds) == 0:
+            embed.set_image(url="https://i.pinimg.com/736x/f1/b8/a0/f1b8a068155fd8593c1834d64cf7945e.jpg")
+        embeds.append(embed)
+    return embeds
 
 
 class BreakdownBot(commands.Bot):
@@ -93,8 +95,8 @@ async def slash_breakdown(interaction: discord.Interaction, phrase: str) -> None
         )
         return
 
-    embed = _build_embed(phrase, cards)
-    await interaction.followup.send(embed=embed)
+    embeds = _build_embeds(cards)
+    await interaction.followup.send(embeds=embeds)
 
 
 @slash_breakdown.error
@@ -143,8 +145,8 @@ async def prefix_breakdown(ctx: commands.Context, *, phrase: str) -> None:
             )
             return
 
-    embed = _build_embed(phrase, cards)
-    await ctx.send(embed=embed)
+    embeds = _build_embeds(cards)
+    await ctx.send(embeds=embeds)
 
 
 @prefix_breakdown.error
