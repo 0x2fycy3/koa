@@ -23,7 +23,7 @@ def _build_embeds(cards: list[BreakdownCard]) -> list[discord.Embed]:
         embed = discord.Embed(color=0xFA8072)
         pinyin = card.pinyin[:1000] + "..." if len(card.pinyin) > 1024 else card.pinyin
         english = card.english[:1000] + "..." if len(card.english) > 1024 else card.english
-        value = f"**Pinyin:** ||{pinyin}||\n\n**English:** ||{english}||"
+        value = f"**Pinyin:** {pinyin}\n\n**English:** {english}"
         embed.add_field(name=card.original, value=value, inline=False)
         embed.set_footer(text=f"Model: {config.DEEPSEEK_MODEL}")
         if i == len(cards) - 1:
