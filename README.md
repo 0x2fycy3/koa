@@ -17,7 +17,9 @@ Pinyin · English · Right in your server
 
 ## Overview
 
-**koa** breaks down any Chinese phrase into clause-by-clause cards with pinyin and English translation. Just type `/breakdown` or `!breakdown` in Discord — the bot sends back a clean embed with spoiler-tagged chunks you can click to reveal.
+**koa** breaks down any Chinese phrase into clause-by-clause cards with pinyin and English translation. Each card displays click-to-reveal spoiler chunks with matching numbers — `(1)` in pinyin maps to `(1)` in English, `(–)` marks untranslatable words.
+
+For multi-clause sentences, the first card appears in chat and the rest are nested inside a thread to keep things tidy.
 
 > Powered by [DeepSeek](https://deepseek.com) via an OpenAI-compatible API. No database, no bloat.
 
