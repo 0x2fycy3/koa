@@ -21,6 +21,8 @@ Pinyin · English · Right in your server
 
 > Powered by [DeepSeek](https://deepseek.com) via an OpenAI-compatible API. No database, no bloat.
 
+<img src="assets/usage-sample.png" alt="Usage sample" width="100%">
+
 ---
 
 ## Quick Start
@@ -32,10 +34,6 @@ cp .env.example .env   # fill in your keys
 just setup
 just run
 ```
-
----
-
-Copy `.env.example` to `.env` and fill in your keys.
 
 ---
 
