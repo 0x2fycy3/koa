@@ -13,8 +13,10 @@ Your ENTIRE response must be a valid JSON array. No text before or after the JSO
 
 Each element of the array is one card (one grammatical clause), with exactly three keys:
 - "original": the Chinese clause as-is
-- "pinyin": spoiler-tagged chunks: ||chunk||(N)
-- "english": spoiler-tagged translation mapped to the same numbers. Extra grammatical words with no direct Chinese source get ||(–)||
+- "pinyin": each chunk wrapped in ||double pipes|| immediately followed by (N) — on ONE line, no line breaks
+- "english": each chunk wrapped in ||double pipes|| immediately followed by (N) — on ONE line, no line breaks. Extra grammatical words get ||(–)||
+
+CRITICAL: Every chunk MUST be wrapped in || ... ||(N). Example: ||你好||(1) ||世界||(2). Do NOT put chunks on separate lines. Do NOT omit the || pipes.
 
 ---
 
