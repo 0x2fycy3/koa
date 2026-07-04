@@ -19,7 +19,9 @@ koa/
 ├── src/
 │   ├── __init__.py
 │   ├── main.py          # Bot client, commands, cooldown, permission check
-│   └── breakdown.py     # DeepSeek call, JSON parse -> typed cards
+│   ├── breakdown.py     # DeepSeek call, JSON parse -> typed cards
+│   ├── config.py        # Centralized settings loaded from .env
+│   └── logger.py        # Structured logging setup
 ├── .env.example
 ├── .gitignore
 ├── pyproject.toml
@@ -37,6 +39,22 @@ koa/
   - Receives JSON array, validates each element has the three keys
   - Returns typed list of `BreakdownCard`
   - Raises custom exception on API failure or malformed response
+
+### `src/config.py` — Centralized Settings
+
+Loads `.env` via `python-dotenv`. Exposes typed config values:
+- `DISCORD_TOKEN: str`
+- `DEEPSEEK_API_KEY: str`
+- `DEEPSEEK_MODEL: str` (default `deepseek-chat`)
+- `ALLOWED_USER_IDS: set[int]` (parsed from comma-separated string)
+- `DEEPSEEK_BASE_URL: str` (default `https://api.deepseek.com`)
+- `COMMAND_PREFIX: str` (default `!`)
+- `COOLDOWN_SECONDS: float` (default `3.0`)
+
+### `src/logger.py` — Structured Logging
+
+Sets up Python's `logging` with a consistent format: timestamp, level, module, message.
+Exposes `get_logger(name)` returning a configured logger instance.
 
 ### `src/main.py` — Bot Orchestration
 
