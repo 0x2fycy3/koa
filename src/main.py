@@ -97,7 +97,8 @@ async def slash_breakdown(interaction: discord.Interaction, phrase: str) -> None
     logger.info("Sending %d embeds for %d cards", len(embeds), len(cards))
     msg = await interaction.followup.send(embed=embeds[0])
     if len(embeds) > 1:
-        thread = await msg.create_thread(name=cards[0].original[:100])
+        real_msg = await interaction.channel.fetch_message(msg.id)
+        thread = await real_msg.create_thread(name=cards[0].original[:100])
         for embed in embeds[1:]:
             await thread.send(embed=embed)
 
