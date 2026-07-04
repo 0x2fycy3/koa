@@ -95,8 +95,8 @@ async def slash_breakdown(interaction: discord.Interaction, phrase: str) -> None
         return
 
     embeds = _build_embeds(cards)
-    await interaction.followup.send(embed=embeds[0])
-    for embed in embeds[1:]:
+    logger.info("Sending %d embeds for %d cards", len(embeds), len(cards))
+    for embed in embeds:
         await interaction.followup.send(embed=embed)
 
 
@@ -147,8 +147,8 @@ async def prefix_breakdown(ctx: commands.Context, *, phrase: str) -> None:
             return
 
     embeds = _build_embeds(cards)
-    await ctx.send(embed=embeds[0])
-    for embed in embeds[1:]:
+    logger.info("Sending %d embeds for %d cards", len(embeds), len(cards))
+    for embed in embeds:
         await ctx.send(embed=embed)
 
 

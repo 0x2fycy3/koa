@@ -94,6 +94,7 @@ async def breakdown_phrase(phrase: str) -> list[BreakdownCard]:
             temperature=0.3,
         )
         content = response.choices[0].message.content or ""
+        logger.info("API raw response: %s", content)
         content = content.strip()
         # ponytail: strip markdown fences if the model ignores the prompt
         if content.startswith("```"):
@@ -102,6 +103,7 @@ async def breakdown_phrase(phrase: str) -> list[BreakdownCard]:
                 content = content[4:].strip()
 
         cards_data = json.loads(content)
+        logger.info("Parsed %d cards: %s", len(cards_data), [c.get("original", "?") for c in cards_data])
 
         if not isinstance(cards_data, list):
             raise BreakdownError("Expected a JSON array, got something else")
