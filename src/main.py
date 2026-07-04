@@ -97,9 +97,14 @@ async def slash_breakdown(interaction: discord.Interaction, phrase: str) -> None
     logger.info("Sending %d embeds for %d cards", len(embeds), len(cards))
     msg = await interaction.followup.send(embed=embeds[0])
     if len(embeds) > 1:
-        thread = await msg.create_thread(name=cards[0].original[:100])
-        for embed in embeds[1:]:
-            await thread.send(embed=embed)
+        try:
+            thread = await msg.create_thread(name=cards[0].original[:100])
+            for embed in embeds[1:]:
+                await thread.send(embed=embed)
+        except Exception as e:
+            logger.error("Thread creation failed: %s", e)
+            for embed in embeds[1:]:
+                await interaction.followup.send(embed=embed)
 
 
 @slash_breakdown.error
@@ -152,9 +157,14 @@ async def prefix_breakdown(ctx: commands.Context, *, phrase: str) -> None:
     logger.info("Sending %d embeds for %d cards", len(embeds), len(cards))
     msg = await ctx.send(embed=embeds[0])
     if len(embeds) > 1:
-        thread = await msg.create_thread(name=cards[0].original[:100])
-        for embed in embeds[1:]:
-            await thread.send(embed=embed)
+        try:
+            thread = await msg.create_thread(name=cards[0].original[:100])
+            for embed in embeds[1:]:
+                await thread.send(embed=embed)
+        except Exception as e:
+            logger.error("Thread creation failed: %s", e)
+            for embed in embeds[1:]:
+                await ctx.send(embed=embed)
 
 
 @prefix_breakdown.error
