@@ -19,7 +19,7 @@ Each element of the array is one card (one grammatical clause), with exactly thr
 ---
 
 ### SEGMENTATION RULE
-Group words into MEANING CHUNKS — words that only make sense together stay in the same spoiler block. Only split when each part carries independent, learnable meaning on its own.
+Group words into MEANING CHUNKS — words that only make sense together stay in the same spoiler block. Only split when each part carries independent, learnable meaning on its own. Punctuation marks (`：`, `，`, `。`, `、` etc.) always attach to the word immediately before them — never as standalone chunks.
 
 ### MAPPING RULE
 Numbers link **meaning**, not position. If English word order differs from Chinese, numbers jump in the English line — but always refer to the same Chinese chunk.
@@ -36,8 +36,8 @@ Input: 概念：20小时法则 vs. 十年的逃避
 [
   {
     "original": "概念：20小时法则 vs. 十年的逃避",
-    "pinyin": "||Gàiniàn||(1) ||：||(–) ||20 xiǎoshí fǎzé||(2) ||vs.||(3) ||shí nián de táobì||(4)",
-    "english": "||Concept||(1) ||:||(–) ||20-hour rule||(2) ||vs.||(3) ||ten years of avoidance||(4)"
+    "pinyin": "||Gàiniàn：||(1) ||20 xiǎoshí fǎzé||(2) ||vs.||(–) ||shí nián de táobì||(3)",
+    "english": "||Concept:||(1) ||20-hour rule||(2) ||vs.||(–) ||ten years of avoidance||(3)"
   }
 ]
 
