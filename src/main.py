@@ -26,8 +26,7 @@ def _build_embeds(cards: list[BreakdownCard]) -> list[discord.Embed]:
         value = f"**Pinyin:** {pinyin}\n\n**English:** {english}"
         embed.add_field(name=card.original, value=value, inline=False)
         embed.set_footer(text=f"Model: {config.DEEPSEEK_MODEL}")
-        if i == len(cards) - 1:
-            embed.set_image(url="https://i.pinimg.com/736x/f1/b8/a0/f1b8a068155fd8593c1834d64cf7945e.jpg")
+        embed.set_image(url="https://i.pinimg.com/736x/f1/b8/a0/f1b8a068155fd8593c1834d64cf7945e.jpg")
         embeds.append(embed)
     return embeds
 
@@ -96,8 +95,11 @@ async def slash_breakdown(interaction: discord.Interaction, phrase: str) -> None
 
     embeds = _build_embeds(cards)
     logger.info("Sending %d embeds for %d cards", len(embeds), len(cards))
-    for embed in embeds:
-        await interaction.followup.send(embed=embed)
+    msg = await interaction.followup.send(embed=embeds[0])
+    if len(embeds) > 1:
+        thread = await msg.create_thread(name=cards[0].original[:100])
+        for embed in embeds[1:]:
+            await thread.send(embed=embed)
 
 
 @slash_breakdown.error
@@ -148,8 +150,11 @@ async def prefix_breakdown(ctx: commands.Context, *, phrase: str) -> None:
 
     embeds = _build_embeds(cards)
     logger.info("Sending %d embeds for %d cards", len(embeds), len(cards))
-    for embed in embeds:
-        await ctx.send(embed=embed)
+    msg = await ctx.send(embed=embeds[0])
+    if len(embeds) > 1:
+        thread = await msg.create_thread(name=cards[0].original[:100])
+        for embed in embeds[1:]:
+            await thread.send(embed=embed)
 
 
 @prefix_breakdown.error
