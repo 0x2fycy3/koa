@@ -27,6 +27,7 @@ def _build_embed(phrase: str, cards: list[BreakdownCard]) -> discord.Embed:
         value = f"**Pinyin:** {pinyin}\n\n**English:** {english}"
         embed.add_field(name=card.original, value=value, inline=False)
     embed.set_footer(text=f"Model: {config.DEEPSEEK_MODEL}")
+    embed.set_image(url="https://i.pinimg.com/736x/f1/b8/a0/f1b8a068155fd8593c1834d64cf7945e.jpg")
     return embed
 
 
