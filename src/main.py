@@ -98,11 +98,14 @@ async def slash_breakdown(interaction: discord.Interaction, phrase: str) -> None
     msg = await interaction.followup.send(embed=embeds[0])
     if len(embeds) > 1:
         try:
-            thread = await msg.create_thread(name=cards[0].original[:100])
+            thread = await interaction.channel.create_thread(
+                name=cards[0].original[:100],
+                message=msg,
+            )
             for embed in embeds[1:]:
                 await thread.send(embed=embed)
         except Exception as e:
-            logger.error("Thread creation failed: %s", e)
+            logger.error("Thread creation failed from slash: %s", e)
             for embed in embeds[1:]:
                 await interaction.followup.send(embed=embed)
 
