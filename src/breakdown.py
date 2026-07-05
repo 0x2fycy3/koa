@@ -78,8 +78,8 @@ Each card (one clause) has:
 - "words": array of {chinese, pinyin, english} — EVERY word broken down
 
 Split by Chinese WORDS (not characters). 学生 stays "学生", not "学"+"生".
+Skip punctuation (。，：；！？) and formatting symbols — only actual Chinese words go in the array.
 Particles (的/了/着/地/得) get "(particle)" as meaning.
-Punctuation (。，：) gets its own entry.
 
 Split long sentences into multiple cards (one per clause).
 
